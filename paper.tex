@@ -1,0 +1,269 @@
+\documentclass{cccg13}
+
+\usepackage{graphicx,amssymb,amsmath,dsfont}
+
+% URLs
+\usepackage{url}
+
+%comments
+\usepackage{verbatim}
+
+\begin{document}
+
+\newcommand{\supplier}{beer store}
+\newcommand{\supplied}{inebriated}
+\newcommand{\Supplier}{Beer store}
+\newcommand{\Supplied}{Inebriated}
+
+%\newcommand{\supplier}{supplier}
+%\newcommand{\supplied}{supplied}
+%\newcommand{\Supplier}{Supplier}
+%\newcommand{\Supplied}{Supplied}
+
+\newcommand{\suppliers}{\supplier{}s}
+\newcommand{\Suppliers}{\Supplier{}s}
+
+
+\title{\Supplied{} Routes}
+
+\author{
+Alexis Beingessner\footnotemark[2]
+\and 
+Michiel Smid\footnotemark[2]
+} 
+
+\thispagestyle{empty}
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%ABSTRACT%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{abstract}
+Given a set of \supplier{} vertices in a graph, we consider the problem of finding effecient routes through the graph that pass through any \supplier{}. We introduce structures that match the performance of the best known structures for the unconstrained shortest path problem in general graphs. We also provide better structures for special classes of graphs.
+\end{abstract}
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%INTRO%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}   \label{secintro} 
+The problem of finding the shortest route between two points in various contexts is an important and well studied problem in computer science. One version of this problem introduces several categories of vertices that must be visited on the route. For instance, one may be interested in the shortest route from home to work that also visits any gas station and coffee shop. In this context, unlike unconstrained shortest path queries, it may be more effecient to visit some vertices and edges multiple times.
+
+There exists two major variants of this problem: when the order of the categories does or doesn't matter. When the order \emph{does} matter, then this is the \emph{optimal sequenced route} (OSR) problem. This problem was introduced by Sharifzadeh et al. \cite{Sharifzadeh2008} in the context of spatial databases. They provide several algorithms for performing queries that perform well in practice, but have few theoretical guarantees. In addition, their algorithms only work under the assumption of working in a vector or metric space. On general graphs we cannot assume there is an explicit metric, or even a direct edge between two points. Of course, shortest paths (if they exist) form a metric on any graph, but the time necessary to compute all of these shortest paths in order to explicitly construct the metric is quite high.
+
+When the order of the categories \emph{doesn't} matter, then this is the \emph{trip planning} or \emph{generalize travelling salesman path} (GTSP) problem. As the name implies, traveling salesman problems can be reduced to GTSP by giving each vertex its own class. Thus, this problem is NP-Hard in the number of classes \cite{Rice2012}. 
+
+A brief survey of both of these problems can be found in \cite{Rice2013}. 
+
+In this paper we will primarily consider these problems in the context of general graphs when there exists a single class of vertices that must be visited. In order to further simplify the problem, we will permit vertices to be revisited. This makes the problem much more tractable to approximate, and guarantees that a solution always exists in arbitrary graphs. In addition, while most literature focuses on solving the problem when the classes or even the graph are provided at the time of the query, we would instead like to preprocess a graph with a particular set of classes to support queries. More formally, we consider the following.
+
+Given a graph $G=(V,E)$, and a set $S \subseteq V$ of \emph{\supplier{}} vertices -- $n = |V|$, $m = |E|$, and $h = |S|$ -- we wish to construct data structures to support the following queries: 
+
+\begin{enumerate}
+    \item \emph{min-\supplied{}-route}: Given two vertices $u$ and $v$, determine the shortest route $R$ from $u$ to $v$, such that $R$ contains a vertex of $S$. Here the choice of \supplier{} is unimportant, and it may be excluded from the output; one may choose any \supplier{} they happen to find along the route.
+
+    \item \emph{min-\supplied{}-length}: Given two vertices $u$ and $v$, Determine the length of the min-\supplied{}-route from $u$ to $v$.
+\end{enumerate}
+
+Remark that we can easily reduce unconstrained \emph{shortest path} problems to \supplied{}-route problems by simply making every vertex a \supplier{}. Thus, all shortest path lower bounds apply to the \supplied{}-route problems as well. For the most general inputs, we will therefore aim to simply match the best known shortest path results. However, if we assume that the number of \suppliers is small, we are be able to improve performance by exploiting the structure of the problem.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%   SINGLE SOURCE
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Single-Source \Supplied{} Routes}
+Shortest path queries can be broken into two major categories: \emph{single-source shortest path} (SSSP), and \emph{all-pairs shortest path} (APSP). Single-source queries fix the first vertex in all queries, while all-pairs queries allow every possible combination of vertices. 
+
+We will first solve the \emph{single-source supplied route} (SSSR) problem. That is, given $G$, $S$, and some fixed vertex $u \in V$, we would like to preprocess $G$ to answer \supplied{} route queries from $u$ to $v$, where $v$ is can be any vertex in $V$ (including $u$ itself).
+
+To do this, we must identify some key properties of the minimum \supplied{} route between two vertices $u$ and $v$.
+
+\begin{lemma}
+    \label{lem:two-paths}
+    Let an \emph{optimal \supplier{}} $s$ with respect to $u$ and $v$ be a \supplier{} such that there exists a minimum length route $u,\dots,s,\dots,v$.
+
+    Let $u = p_1,\dots,p_k = v$ be a minimum \supplied{} route from $u$ to $v$. Every \supplier{} on this route is an optimal \supplier{}, and if $p_i$ is a \supplier{}, then $p_1,\dots, p_i$ is a shortest path from $u$ to $p_i$, and $p_i,\dots,p_k$ is a shortest path from $p_i$ to $v$.
+\end{lemma}
+
+\begin{proof}
+    Clearly, each choice of \supplier{} is optimal, as there exists a route that passes through it of minimum length. Now assume $p_1, \dots, p_i$ is not a shortest path from $u$ to $p_i$. Then there is a shorter path from $u$ to $p_i$, after which one can take $p_i,\dots,p_k$ to get a shorter \supplied{} route from $u$ to $v$, which would contradict the fact that $p_1, \dots, p_k$ is minimal. Similarly, $p_i, \dots, p_k$ must also be a shortest path.
+\end{proof}
+
+Remark that this implies the minimum \supplied{} route from $u$ to $v$ can be broken down into two parts: a shortest path from $u$ to some \supplier{} $s$, and then the shortest path from $s$ to $v$. With this, we are now ready to solve the single-source problem.
+
+We begin by computing the shortest path tree $SPT(G,u)$ of $u$ in $G$. In particular, we are only interested in the shortest path to every \supplier{}. We may even discard any \supplier{} that has another \supplier{} on its shortest path, though this has no assymptotic benefits in general. We create an augmented graph $G^+$ by constructing a new vertex $u'$ and connecting it to every \supplier{} $s$, with an edge length equal to $d(u,s)$ (which we have just computed). We then compute $SPT(G^+,u')$. 
+
+To determine min-\supplied{}-length, we need only determine $d(u',v)$, which we have computed in constructing $SPT(G^+,u')$. To determine the min-\supplied{}-route, we simply identify the path from $u'$ to $v$ in $SPT(G^+,u')$. This of course only gives us the \emph{second} path of the min-\supplied{}-route. The first edge of this path is a stand-in for the first path, which we computed and can retrieve from $SPT(G,u)$. Remark also that the second vertex on this path is always an optimal \supplier{}, which we can report if desired.
+
+\begin{theorem}
+    Let $SSSP(G)$ be the time it takes to construct a single-source shortest path tree for any vertex of $G$. Then given some node $u \in V$, the optimal \supplied{} route from $u$ to every vertex $v \in V$ can be computed in $O(n + SSSP(G) + SSSP(G^+))$ time, and stored in a structure of size $O(n)$ which can report the \supplied{} distance from $u$ to $v$ in $O(1)$ time, or the \supplied{} route in $O(k)$ time, where $k$ is the number of vertices in the route.
+\end{theorem}
+
+This immediately produces the following result:
+
+\begin{cor}
+    Such an SSSR structure can be constructed on any graph in $O(m + n\log n)$ time.
+\end{cor}
+
+\begin{proof}
+    This follows from the best known implementation of Dijkstra's algorithm, which runs in $O(m + n\log n)$ time on any graph.
+\end{proof}
+
+Since our algorithm otherwise only has $O(n)$ overhead over SSSP, any improvements to general SSSP will directly translate to equivalent improvements to our structure. Since SSSR is atleast as hard as SSSP, it follows that our structure is optimal.
+
+Just as with SSSP, our SSSR structure can also be used to compute the minimum supplied route between any two vertices in $O(m + n\log n)$ time with no preprocessing.
+
+As an additional theoretical curiousity, we also present the following result: 
+
+\begin{cor}
+    Such an SSSR structure can be constructed on an outerplanar graph in $O(n + m)$ time.
+\end{cor}
+
+\begin{proof}
+    To achieve $O(n)$ construction time, we need to show that $O(n + SSSP(G) + SSSP(G^+)) = O(n+m)$ when $G$ is outerplanar. To do this, we use the linear-time planar graph SSSP algorithm introduced in \cite{Henzinger1997}. Since $G$ is outerplanar, it is trivially planar. Further, since $G$ is outerplanar, $G^+$ is planar. To see this, we note that at worst, $G^+$ is $G$ plus an extra vertex connected to every other vertex. Since $G$ is outerplanar, there must exist an embedding of $G$ where every vertex lays on one face. We can then insert the new vertex in this face without introducing any crossings. Since both $G$ and $G^+$ are planar, it follows that $O(n + SSSP(G) + SSSP(G^+)) = O(n+m)$.
+\end{proof}
+
+Of course, we aren't actually interested in $SPT(G^+, u')$ itself. We are simply using this as a simple way to compute the nearest vertices to each \supplier additively weighted by the shortest distance to them. This is simply an additively weighted voronoi diagram of our graph (which we could obtain from $SPT(G^+, u')$ by deleting $u'$). If we know of some effecient way to compute $SPT(G^+, u')$ (e.g. $G^+$ is planar), then this is great. Otherwise, we're needlessly creating a slightly larger and more complicated instance for Dijkstra's algorithm. Instead, we can use a so-called \emph{parallel Dijkstra's algorithm}. Parallel Dijkstra is a simple modification: We simply don't bother putting our \suppliers in the heap used by Dijsktra's algorithm, and before starting, we relax all the edges leaving our suppliers in an arbitrary sequence. Then we proceed with Dijkstra's algorithm as usual.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   All-Pairs
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{All-Pairs \Supplied{} Routes}
+From the single-source structure defined in the previous section, we can derive several solutions to the full \emph{all-pairs} \supplied{} route (APSR) problem.
+
+For general graphs, we trivially get the following result:
+
+\begin{theorem}
+    Given any graph $G$, a structure of size $O(n^2)$ can be constructed in $O(mn + n^2\log n)$ time which can report the \supplied{} distance from any two vertices in $G$ in $O(1)$ time, or the \supplied{} route in $O(k)$ time, where $k$ is the length of the route.
+\end{theorem}
+
+\begin{proof}
+    This follows from simply constructing the single-source structure on every vertex of the graph.
+\end{proof}
+
+Remark that this is the same performance as Johnson's algorithm for all-pairs shortest path, which is the best known algorithm for general sparse graphs.
+
+\subsection{Seperable Graphs}
+
+We can also use our single-source structure to get an even more effecient all-pairs structure for minor-closed graphs with small seperators.
+
+\begin{defn}
+    Let $c$ be an integer, $c > 1$, and $d$ be some real number, $0 < d < 1$. A class $C$ of graphs is \emph{$c,d$-seperable} if, for every graph $G = (V,E) \in C$, $V$ can be partitioned into three sets $A$, $B$, $T$ such that $|T| \leq c$, and $|A|,|B| \leq dn$, and there exists no edge from $A$ to $B$. We say $T$ is a \emph{$d$-seperator} of $G$, and $T$ \emph{seperates} $G$ into the subgraphs induced by $A$ and $B$. 
+\end{defn}
+
+\begin{defn}
+    Let $H$ be a $\emph{minor}$ of a graph $G$ if $H$ can be obtained from $G$ be contracting edges, deleting edges, and deleting vertices. A class $C$ of graphs is minor-closed if every minor of a graph $G \in C$ is also in $C$.
+\end{defn}
+
+Let $G$ be a graph in a minor-closed $c,d$-seperable class of graphs. 
+
+If $G$ is at most some constant in size, then we apply our naive APSP algorithm. Otherwise, we begin by computing a seperator of $G$. Since $G$ is $c,d$-seperable, there exists a $d$-seperator $T$ of $G$ of size at most $c$. For all of the vertices of the seperator, we then compute an instance of our SSSR structure, and an SSSP structure (which we have from our SSSR construction). We then recursively construct this structure on both sides of the seperator, with some augmentation to be described. 
+
+To determine the shortest \supplied{} route from $u$ to $v$, we find the highest seperator $T$ in our recursive decomposition that seperates $u$ and $v$. If no such $T$ exists, then $u$ and $v$ are in the same component of constant size, for which we have an instance of our naive structure to query the answer from. Otherwise, the shortest \supplied{} route must pass through $T$, by definition. Since we have an $SSSP$ and $SSSR$ datastructure for each vertex of $T$, and $|T| \leq c$, for each $t \in T$ we can easily try every combination of $SSSP(u, t) + SSSR(t, v)$ and $SSSR(u, t) + SSSP(t, v)$, to determine the minimum of all such combinations. This is the minimum supplied route.
+
+We now describe the augmentation mentionned above. When determining the shortest \supplied{} route from $u$ to $v$, we cannot simply look at any connected subgraph that $u$ and $v$ are part of. We must augment our subgraphs to include additional information about the rest of the graph, in case the optimal route exits the subgraph. In particular, if $T$ seperates $G$ into two subgraphs $G' = (A, E')$ and $G'' = (B, E'')$, then rather than recursing on $G'$ we augment $G'$ with $T$ and a minor of $G''$.
+
+\begin{defn}
+    A \emph{distance preserving minor} $H$ of $G$ with respect to a set $K \subseteq V$ of \emph{terminal} vertices is a minor of $G$ that contains every vertex in $K$, and for each pair of vertices $u,v \in K$, $d_G(u,v) = d_H(u, v)$.
+\end{defn}
+
+If $K$ is of size $g$, then a distance preserving minor of size $O(g^4)$ can be computed in $O(gSSSP(G) + m + gn)$ time \cite{distance-preserving-minor}.
+
+We would like to summarize $G''$ by computing a distance preserving minor of it. 
+
+The resultant graph has size $O(c^8)$ and takes $O(c^2SSSP(G) + m + c^2n)$ time to compute.
+
+To find $T$, we remark that our recursive seperators define a tree. If each vertex $v \in V$ stores which seperator it was first part of (or if no such seperator exists, the atomic region it was last in), then $T$ is simply the lowest common ancestor (LCA) of $u$ and $v$. We then find $T$ using a standard LCA structure which has $O(n)$ time and space construction, and $O(1)$ time queries. 
+
+Let $SEP(G)$ be the time it takes to compute a seperator of $G$. Then this data structure takes $O((cSSSR(G) + SEP(G))\log_{1/k}n)$ time to construct, requires $O(c(m + n)\log_{1/k}n)$ space, and can answer queries in $O(c)$ time.
+
+If $SEP(G) = O(n \log n)$, this pre-processing time is $O(n \log^2 n)$ using dijkstra's algorithm for SSSP. If $SEP(G)$ and $SSSR(G)$ are both $O(n + m)$, then the pre-processing time is $O((n + m) \log n)$. Outerplanar graphs are a class of graphs that satisfy these properties.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%   Few \Supplier{}s
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{\Supplier{} Sensitivity}
+If $h$, the number of \supplier{}s, is sufficiently small, then we may use a much simpler algorithm for all \supplier{} problems. We simply construct the shortest path tree of each \supplier{}, and store them. Then, when we wish to find the minimum \supplied{} route from $u$ to $v$, for each \supplier{} $s \in S$ we query its tree for the paths from $u$ to $s$ and $s$ to $v$. This is, by defintion, the shortest route from $u$ to $v$ that passes through $s$. By taking the best solution over all trees, we find the optimum solution. This gives us the following result:
+
+\begin{theorem}
+    Given a graph $G$ with $h$ sources, a structure of size $O(hn)$ can be constructed in $O(h SSSP(G))$ time which can report the \supplied{} distance from any two vertices in $G$ in $O(h)$ time, or the \supplied{} route in $O(h + k)$ time, where $k$ is the length of the route.
+\end{theorem}
+
+Thus, if $h$ is a constant, then we can solve the all-pairs problem using only the resources necessary to solve SSSP. In fact, this beats our most general solution in terms of space and construction time whenever $h = o(n)$. However, query times will suffer greatly as $h$ grows.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   Spanners
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{\Supplied{} Spanners}
+As with unconstrained routing in a graph, it would be desirable to be able to route in a substantially sparser or simpler version of a graph, while minimizing the distortion to distances.
+
+Let $d_G(u,v)$ be the length of the shortest path between $u$ and $v$ in $G$. Then a \emph{$t$-spanner} $G'$ of a graph $G$ is a subgraph of $G$ such that 
+$d_G(u,v) \leq d_{G'}(u,v) \leq t d_G(u,v)$. 
+Let $s_G(u,v)$ be the length of the minimum \supplied{} route of $u$ and $v$ in $G$. We then define a \emph{$t$-\supplied{}-spanner} $G'$ of a graph $G$ to be a subgraph of $G$ such that 
+$s_G(u,v) \leq s_{G'}(u,v) \leq t s_G(u,v)$.
+
+\begin{lemma}
+    Every $t$-spanner of a graph is a $t$-\supplied{}-spanner.
+\end{lemma}
+
+\begin{proof}
+    By Lemma \ref{lem:two-paths}, the minimum \supplied{} route consists of at most two shortest paths. In a $t$-spanner, lengths of shortest paths are distorted by at most a factor of $t$. Therefore, the sum of the lengths of two shortest paths will be distorted by at most a factor of $t$.
+\end{proof}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   Routing
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Routing}
+
+Let a \emph{routing scheme} $A$ on a graph $G$ be a function from pairs of vertices to routes between those vertices. $A$ is said to be \emph{$c$-competitive} if $|A(u,v)| \leq c d_G(u,v)$. We say a routing scheme is a \emph{\supplied{} routing scheme} if it always visits a \supplier{}. A \supplied{} routing scheme $A$ is said to be \emph{$c$-competitive} if $A(u,v) \leq c s_G(u,v)$. Unlike spanners, we cannot trivially determine a nice relation between \supplied{} routing schemes and unconstrained routing schemes, as we would have to know the optimal source to visit in order to use the routing scheme unmodified.
+
+However, the following naive routing scheme performs very well. To travel from $u$ to $v$, find the nearest \supplier{} $s$ to $u$ and $v$. That is, the \supplier{} than minimizes $\min\{d(u,s), d(v,s)\}$. Then take the shortest path from $u$ to $s$, and the shortest path $s$ to $v$.
+
+\begin{lemma}
+    On an undirected graph, this is a $2$-competitive \supplied{} routing scheme.
+\end{lemma}
+
+\begin{proof}
+    Clearly, this is a \supplied{} route, as it visits at least one \supplier{}. Now let $s'$ be the optimal \supplier{} of $u$ and $v$, let $a = d(u,s')$, and $b = d(s',v)$. Therefore, the minimum \supplied{} distance of $u$ and $v$ is $a + b$. Assume that $s$ was the nearest source to $u$ (instead of $v$). Then $d(u,s)$ can be at most $a$. The shortest path from $s$ to $v$ consequently can be at most $2a + b$, as at worst one can travel from $s$ back to $u$, and take the optimal \supplied{} route from $u$ to $v$. Therefore, this route has a length at most $3a + b$. By symmetry, we can reason that if $s$ was the closest \supplier{} to $v$, then the route has length at most $3b + a$. Since we took $s$ to minimize $\min\{d(u,s), d(v,s)\}$, then our route has length at most $\min\{3a + b, 3b + a\}$. This is maximized when $a = b$, so this is at most $3a + a = 4a = 2(a + b)$. Therefore, this routing scheme is $2$-competitive.
+\end{proof}
+
+Given a graph $G$, we can easily compute the nearest \supplier{} to each vertex by using the same trick we used in solving the single source problem: We create an augmented graph $G^+$ with a new vertex connected to every \supplier{}, but this time by an edge of length $0$, and compute the shortest path tree from that vertex. We can also replace the shortest paths in our routing scheme with another routing scheme. This gives us the following result: 
+
+\begin{theorem}
+    Given a $c$-competitive routing scheme on a graph $G$, one can construct a $2c$-competitive \supplied{} routing scheme on $G$ with the same asymptotic time and space requirements after $O(SSSP(G^+))$ preprocessing time.
+\end{theorem}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   
+
+\addcontentsline{toc}{chapter}{References}
+\small 
+\bibliographystyle{abbrv}
+\bibliography{bibliography}
+
+\end{document}
+
+

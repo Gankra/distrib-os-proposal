@@ -1,0 +1,50 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+\begin{document}
+
+\title{Concurrent Programming Languages}
+
+\author{
+Alexis Beingessner
+\and
+Troy Hildebrandt
+}
+
+\maketitle
+
+\section{Abstract}
+
+Developing applications for distributed systems provides unique challenges that many modern programming languages are not inherently equipped for. These challenges are often ones that arise with parallel and concurrent programming, with additional concerns such as node and network failures, software survivability, and network latency issues, among others.
+
+Certain languages attempt to tackle some of the major problems associated with developing distributed applications. These languages provide built-in facilities for creating nodes that communicate over a network, error handling, message passing, and mechanisms for more transparently simulating shared memory. This simplifies fault-tolerance and synchronous access to data across multiple machines.
+
+We look at several languages and their respective extensions that enable distributed application development, including Erlang, Concurrent/Cloud Haskell, and Ada. For each, we examine their strengths and innovations, and assess their impact on distributed computing. The languages explored all provide unique solutions to some of distributed programming's toughest problems, in some cases using completely different programming paradigms.
+
+In addition, we look at how these techniques can be used to increase the security and reliability of applications that are only running locally. For instance, separating an application into several logical processes allows those processes to fail or become compromised, without affecting other parts of the application.
+
+\section{Argument}
+
+\begin{itemize}
+    \item Introduction: What is concurrent programming; what challenges does it involve; why solving the problem at the system level (as opposed to application level) is wrong; problems with using C-like languages for it.
+
+    \item Ada
+
+    \item Erlang
+
+    \item Cloud Haskell
+
+    \item Using techniques locally
+
+    \item Conclusion
+\end{itemize}
+
+\cite{1}\cite{2}\cite{3}\cite{4}\cite{5}\cite{6}\cite{7}\cite{8}\cite{9}\cite{10}
+
+\addcontentsline{toc}{chapter}{References}
+\small
+
+\bibliographystyle{abbrv}
+\bibliography{bibliography}
+
+\end{document}
